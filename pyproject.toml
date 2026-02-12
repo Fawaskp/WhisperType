@@ -13,6 +13,7 @@ dependencies = [
     "scipy",
     "numpy",
     "keyboard",
+    "PySide6",
 ]
 
 [project.scripts]

@@ -1,10 +1,12 @@
 import sys
 import threading
 import time
-import tkinter as tk
 import winsound
 
 import keyboard
+
+from PySide6.QtCore import QObject, QTimer, Signal
+from PySide6.QtWidgets import QApplication
 
 try:
     from core.audio_recorder import AudioRecorder
@@ -26,13 +28,28 @@ def _beep(freq, duration):
     threading.Thread(target=winsound.Beep, args=(freq, duration), daemon=True).start()
 
 
+class _Invoker(QObject):
+    """Thread-safe helper to schedule callables on the main thread."""
+    _call = Signal(object)
+
+    def __init__(self):
+        super().__init__()
+        self._call.connect(self._execute)
+
+    def _execute(self, fn):
+        fn()
+
+    def invoke(self, fn):
+        self._call.emit(fn)
+
+
 class OverlayApp:
     def __init__(self, config):
         self.config = config
         self.state = "loading"
 
-        self.root = tk.Tk()
-        self.root.withdraw()
+        self.app = QApplication.instance() or QApplication(sys.argv)
+        self._invoker = _Invoker()
 
         self.recorder = AudioRecorder()
         self.transcriber = Transcriber()
@@ -40,7 +57,7 @@ class OverlayApp:
 
         pos = load_position()
         self.window = OverlayWindow(
-            self.root,
+            None,
             on_click=self._on_button_click,
             on_stop=self._on_stop_click,
             on_cancel=self._on_cancel_click,
@@ -57,10 +74,10 @@ class OverlayApp:
     def _load_model(self):
         try:
             self.transcriber.load_model(self.config["model"])
-            self.root.after(0, self._on_model_loaded)
+            self._invoker.invoke(self._on_model_loaded)
         except Exception as e:
             err = e
-            self.root.after(0, lambda: self._on_model_error(err))
+            self._invoker.invoke(lambda: self._on_model_error(err))
 
     def _on_model_loaded(self):
         self.state = "idle"
@@ -79,11 +96,11 @@ class OverlayApp:
         keyboard.add_hotkey("escape", self._on_escape, suppress=False)
 
     def _on_hotkey(self):
-        self.root.after(0, self._toggle_recording)
+        self._invoker.invoke(self._toggle_recording)
 
     def _on_escape(self):
         if self.state == "recording":
-            self.root.after(0, self._cancel_recording)
+            self._invoker.invoke(self._cancel_recording)
 
     # ── Button callbacks ─────────────────────────────────────────────
 
@@ -131,7 +148,7 @@ class OverlayApp:
         if timeout and self.recorder.silence_duration >= timeout:
             self._stop_recording()
             return
-        self.root.after(250, self._poll_silence)
+        QTimer.singleShot(250, self._poll_silence)
 
     def _stop_recording(self):
         audio = self.recorder.stop()
@@ -166,14 +183,14 @@ class OverlayApp:
     def _do_transcribe(self, audio, language):
         try:
             text = self.transcriber.transcribe(audio, language=language)
-            self.root.after(0, lambda: self._on_transcription_done(text))
+            self._invoker.invoke(lambda: self._on_transcription_done(text))
         except Exception as e:
-            self.root.after(0, lambda: self._on_transcription_error(e))
+            self._invoker.invoke(lambda: self._on_transcription_error(e))
 
     def _on_transcription_done(self, text):
         if text:
             self.focus_mgr.restore_focus()
-            self.root.after(300, lambda: self._do_paste(text))
+            QTimer.singleShot(300, lambda: self._do_paste(text))
         else:
             self.state = "idle"
             self.window.set_state("idle")
@@ -200,7 +217,7 @@ class OverlayApp:
 
     def run(self):
         try:
-            self.root.mainloop()
+            self.app.exec()
         finally:
             keyboard.unhook_all()
 
