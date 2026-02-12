@@ -6,5 +6,5 @@
   "language": "en",
   "prepend_space": true,
   "sound_feedback": true,
-  "silence_timeout": 3
+  "silence_timeout": 1
 }

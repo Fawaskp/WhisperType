@@ -13,7 +13,7 @@ DEFAULTS = {
     "language": "en",
     "prepend_space": True,
     "sound_feedback": True,
-    "silence_timeout": 3,
+    "silence_timeout": 1,
 }
 
 
