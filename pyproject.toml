@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "whisper-live"
+version = "0.1.0"
+description = "Voice-to-text overlay for Windows — record, transcribe, and paste with a hotkey."
+requires-python = ">=3.10"
+dependencies = [
+    "openai-whisper",
+    "sounddevice",
+    "scipy",
+    "numpy",
+    "keyboard",
+]
+
+[project.scripts]
+whisper-live = "whisper_live_app.overlay:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["whisper_live_app*"]
+exclude = ["whisper_live_app.venv*"]
+
+[tool.setuptools.package-data]
+whisper_live_app = ["icons/*", "config.json"]

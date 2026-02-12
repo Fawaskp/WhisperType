@@ -1,0 +1,8 @@
+{
+  "model": "base",
+  "hotkey": "ctrl+shift+space",
+  "language": "en",
+  "prepend_space": true,
+  "sound_feedback": true,
+  "silence_timeout": 3
+}
