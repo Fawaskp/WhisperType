@@ -8,20 +8,12 @@ import keyboard
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QApplication
 
-try:
-    from core.audio_recorder import AudioRecorder
-    from core.config import load_config, save_config, load_position, save_position
-    from core.transcriber import Transcriber
-    from core.focus_manager import FocusManager
-    from core.text_injector import inject_text
-    from ui.overlay_window import OverlayWindow
-except ImportError:
-    from whisper_live_app.core.audio_recorder import AudioRecorder
-    from whisper_live_app.core.config import load_config, save_config, load_position, save_position
-    from whisper_live_app.core.transcriber import Transcriber
-    from whisper_live_app.core.focus_manager import FocusManager
-    from whisper_live_app.core.text_injector import inject_text
-    from whisper_live_app.ui.overlay_window import OverlayWindow
+from voice_app.services.recorder import AudioRecorder
+from voice_app.config.settings import load_config, save_config, load_position, save_position
+from voice_app.services.transcriber import Transcriber
+from voice_app.services.focus_manager import FocusManager
+from voice_app.services.text_injector import inject_text
+from voice_app.ui.overlay_window import OverlayWindow
 
 
 def _beep(freq, duration):
@@ -69,11 +61,15 @@ class OverlayApp:
         t = threading.Thread(target=self._load_model, daemon=True)
         t.start()
 
-    # ── Model loading ────────────────────────────────────────────────
+    # -- Model loading -------------------------------------------------
 
     def _load_model(self):
         try:
-            self.transcriber.load_model(self.config["model"])
+            self.transcriber.load_model(
+                model_name=self.config["model"],
+                model_path=self.config.get("model_path"),
+                compute_type=self.config.get("compute_type", "int8"),
+            )
             self._invoker.invoke(self._on_model_loaded)
         except Exception as e:
             err = e
@@ -89,7 +85,7 @@ class OverlayApp:
         self.state = "idle"
         self.window.set_state("error")
 
-    # ── Hotkeys ──────────────────────────────────────────────────────
+    # -- Hotkeys -------------------------------------------------------
 
     def _register_hotkey(self):
         keyboard.add_hotkey(self.config["hotkey"], self._on_hotkey, suppress=True)
@@ -102,7 +98,7 @@ class OverlayApp:
         if self.state == "recording":
             self._invoker.invoke(self._cancel_recording)
 
-    # ── Button callbacks ─────────────────────────────────────────────
+    # -- Button callbacks ----------------------------------------------
 
     def _on_button_click(self):
         self._toggle_recording()
@@ -118,7 +114,7 @@ class OverlayApp:
     def _on_drag_end(self, x, y):
         save_position(x, y)
 
-    # ── Recording control ────────────────────────────────────────────
+    # -- Recording control ---------------------------------------------
 
     def _toggle_recording(self):
         if self.state == "idle":
@@ -178,7 +174,7 @@ class OverlayApp:
                 winsound.Beep(300, 80)
             threading.Thread(target=_cancel_beeps, daemon=True).start()
 
-    # ── Transcription ────────────────────────────────────────────────
+    # -- Transcription -------------------------------------------------
 
     def _do_transcribe(self, audio, language):
         try:
@@ -213,7 +209,7 @@ class OverlayApp:
         self.state = "idle"
         self.window.set_state("error")
 
-    # ── Run ──────────────────────────────────────────────────────────
+    # -- Run -----------------------------------------------------------
 
     def run(self):
         try:

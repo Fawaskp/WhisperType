@@ -7,6 +7,8 @@ _POSITION_PATH = os.path.join(_DIR, "overlay_position.json")
 
 DEFAULTS = {
     "model": "base",
+    "model_path": None,
+    "compute_type": "int8",
     "hotkey": "ctrl+shift+space",
     "language": "en",
     "prepend_space": True,

@@ -1,6 +1,0 @@
-openai-whisper
-sounddevice
-scipy
-numpy
-keyboard
-PySide6

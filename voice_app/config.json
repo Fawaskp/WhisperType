@@ -1,5 +1,7 @@
 {
   "model": "base",
+  "model_path": null,
+  "compute_type": "int8",
   "hotkey": "ctrl+shift+space",
   "language": "en",
   "prepend_space": true,

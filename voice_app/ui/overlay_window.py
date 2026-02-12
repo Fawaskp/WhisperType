@@ -104,7 +104,7 @@ class OverlayWindow(QWidget):
         self.show()
         self._apply_noactivate()
 
-    # ── Win32 ─────────────────────────────────────────────────────────
+    # -- Win32 ---------------------------------------------------------
 
     def _apply_noactivate(self):
         hwnd = int(self.winId())
@@ -113,7 +113,7 @@ class OverlayWindow(QWidget):
         style = style & ~WS_EX_APPWINDOW
         user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
 
-    # ── Resize ────────────────────────────────────────────────────────
+    # -- Resize --------------------------------------------------------
 
     def _resize(self, w, h):
         if w == self._cur_w and h == self._cur_h:
@@ -122,7 +122,7 @@ class OverlayWindow(QWidget):
         self._cur_h = h
         self.setFixedSize(w, h)
 
-    # ── State ─────────────────────────────────────────────────────────
+    # -- State ---------------------------------------------------------
 
     def set_state(self, state, text=""):
         """Thread-safe — can be called from any thread."""
@@ -163,7 +163,7 @@ class OverlayWindow(QWidget):
     def _auto_return_idle(self):
         self.set_state("idle")
 
-    # ── Animation ─────────────────────────────────────────────────────
+    # -- Animation -----------------------------------------------------
 
     def _animate_tick(self):
         if self._state == "loading":
@@ -175,7 +175,7 @@ class OverlayWindow(QWidget):
             self._spin_angle = (self._spin_angle + 15) % 360
         self.update()
 
-    # ── Paint ─────────────────────────────────────────────────────────
+    # -- Paint ---------------------------------------------------------
 
     def paintEvent(self, event):
         p = QPainter(self)
@@ -192,7 +192,7 @@ class OverlayWindow(QWidget):
 
         p.end()
 
-    # ── Compact circle ────────────────────────────────────────────────
+    # -- Compact circle ------------------------------------------------
 
     def _draw_compact(self, p, colors):
         cx = cy = COMPACT_SIZE / 2   # 40
@@ -220,7 +220,7 @@ class OverlayWindow(QWidget):
         elif self._state == "too_short":
             self._draw_clock_icon(p, cx, cy)
 
-    # ── Recording expanded ────────────────────────────────────────────
+    # -- Recording expanded --------------------------------------------
 
     def _draw_recording_expanded(self, p, colors):
         cx_left = ROW_H / 2   # 40
@@ -256,7 +256,7 @@ class OverlayWindow(QWidget):
             rr = bar_w / 2
             p.drawRoundedRect(QRectF(bx, cy - bar_h / 2, bar_w, bar_h), rr, rr)
 
-        # ── Checkmark button ──
+        # -- Checkmark button --
         btn_r = 18
         cx_chk = cx_left + r + 12 + btn_r
 
@@ -274,7 +274,7 @@ class OverlayWindow(QWidget):
         ])
         self._btn_check = (cx_chk, cy, btn_r)
 
-        # ── Cancel button ──
+        # -- Cancel button --
         cx_can = cx_chk + btn_r + 8 + btn_r
 
         p.setPen(QPen(QColor("#E74C3C"), 2))
@@ -288,7 +288,7 @@ class OverlayWindow(QWidget):
         p.drawLine(QPointF(cx_can + xs, cy - xs), QPointF(cx_can - xs, cy + xs))
         self._btn_cancel = (cx_can, cy, btn_r)
 
-    # ── Preview ───────────────────────────────────────────────────────
+    # -- Preview -------------------------------------------------------
 
     def _draw_preview(self, p, colors):
         cy = ROW_H / 2
@@ -334,7 +334,7 @@ class OverlayWindow(QWidget):
         p.drawText(QRectF(bx, by, bx_end - bx, by_end - by),
                    Qt.AlignCenter, display)
 
-    # ── Icons ─────────────────────────────────────────────────────────
+    # -- Icons ---------------------------------------------------------
 
     def _draw_mic_icon(self, p, cx, cy, color):
         c = QColor(color)
@@ -421,7 +421,7 @@ class OverlayWindow(QWidget):
         p.setBrush(QColor("white"))
         p.drawEllipse(QPointF(cx, cy), 2, 2)
 
-    # ── Mouse events ──────────────────────────────────────────────────
+    # -- Mouse events --------------------------------------------------
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:

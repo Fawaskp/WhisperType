@@ -8,10 +8,7 @@ build/
 
 # Virtual environment
 venv/
-whisper_live_app/venv/
-
-# PyInstaller
-*.spec
+voice_app/venv/
 
 # IDE
 .vscode/
@@ -20,7 +17,8 @@ whisper_live_app/venv/
 # OS
 Thumbs.db
 Desktop.ini
-nul
 
 # Project
 overlay_position.json
+voice_app/models/*
+!voice_app/models/.gitkeep
