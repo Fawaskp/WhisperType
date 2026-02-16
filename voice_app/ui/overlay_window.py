@@ -2,8 +2,8 @@ import math
 import sys
 
 from PySide6.QtCore import Qt, QPointF, QRectF, QTimer, Signal
-from PySide6.QtGui import QPainter, QColor, QPen, QFont
-from PySide6.QtWidgets import QWidget, QMenu, QApplication
+from PySide6.QtGui import QPainter, QColor, QPen, QFont, QIcon
+from PySide6.QtWidgets import QWidget, QMenu, QApplication, QSystemTrayIcon
 
 # Geometry
 COMPACT_SIZE = 80
@@ -105,8 +105,41 @@ class OverlayWindow(QWidget):
         # Thread-safe state signal
         self._state_signal.connect(self._set_state_impl)
 
+        self._setup_tray_icon()
         self.show()
         self._apply_noactivate()
+
+    # -- System tray icon --------------------------------------------------
+
+    def _setup_tray_icon(self):
+        icon = self._find_icon()
+        if icon.isNull():
+            return
+        self._tray = QSystemTrayIcon(icon, self)
+        tray_menu = QMenu()
+        tray_menu.addAction("Exit", lambda: QApplication.instance().quit())
+        self._tray.setContextMenu(tray_menu)
+        self._tray.setToolTip("WhisperType")
+        self._tray.show()
+
+    @staticmethod
+    def _find_icon():
+        """Locate the app icon, works both in dev and PyInstaller bundle."""
+        import os
+        # PyInstaller sets _MEIPASS for bundled apps
+        base = getattr(sys, '_MEIPASS', None)
+        if base:
+            candidates = [os.path.join(base, "icon.ico"), os.path.join(base, "icon.png")]
+        else:
+            root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            candidates = [
+                os.path.join(root, "packaging", "icon.ico"),
+                os.path.join(root, "packaging", "icon.png"),
+            ]
+        for path in candidates:
+            if os.path.isfile(path):
+                return QIcon(path)
+        return QIcon()
 
     # -- Platform-specific no-activate hack --------------------------------
 

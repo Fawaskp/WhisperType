@@ -15,7 +15,7 @@ a = Analysis(
     [str(ROOT / "voice_app" / "main.py")],
     pathex=[str(ROOT)],
     binaries=pyside6_binaries,
-    datas=pyside6_datas,
+    datas=pyside6_datas + [(str(ROOT / "packaging" / "icon.png"), ".")],
     hiddenimports=[
         "faster_whisper",
         "ctranslate2",
