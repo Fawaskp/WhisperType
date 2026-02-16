@@ -20,7 +20,7 @@ jobs:
             spec: packaging/whispertype_windows.spec
             artifact: dist/WhisperType
             extras: "[windows]"
-          - os: macos-13
+          - os: macos-latest
             platform: macos
             spec: packaging/whispertype_macos.spec
             artifact: dist/WhisperType.app
