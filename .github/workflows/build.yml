@@ -81,6 +81,13 @@ jobs:
         run: iscc packaging/inno_setup.iss
         shell: cmd
 
+      # -- macOS: ad-hoc sign and strip quarantine --
+      - name: Sign macOS app
+        if: matrix.platform == 'macos'
+        run: |
+          codesign --force --deep --sign - dist/WhisperType.app
+          xattr -cr dist/WhisperType.app
+
       # -- macOS: build DMG --
       - name: Build macOS DMG
         if: matrix.platform == 'macos'
