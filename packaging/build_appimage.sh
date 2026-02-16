@@ -49,17 +49,9 @@ Terminal=false
 DESKTOP
 cp "$APPDIR/whispertype.desktop" "$APPDIR/usr/share/applications/"
 
-# Create a simple SVG icon (placeholder — replace with real icon)
-cat > "$APPDIR/whispertype.svg" <<'SVG'
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle cx="32" cy="32" r="30" fill="#1E1E2E" stroke="#5B9BD5" stroke-width="3"/>
-  <rect x="26" y="14" width="12" height="22" rx="6" fill="white"/>
-  <path d="M20 32 a12 12 0 0 0 24 0" fill="none" stroke="white" stroke-width="2.5"/>
-  <line x1="32" y1="44" x2="32" y2="52" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-  <line x1="24" y1="52" x2="40" y2="52" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-</svg>
-SVG
-cp "$APPDIR/whispertype.svg" "$APPDIR/usr/share/icons/hicolor/256x256/apps/"
+# Copy app icon
+cp "$ROOT/packaging/icon.png" "$APPDIR/whispertype.png"
+cp "$ROOT/packaging/icon.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/whispertype.png"
 
 # Create AppRun
 cat > "$APPDIR/AppRun" <<'APPRUN'

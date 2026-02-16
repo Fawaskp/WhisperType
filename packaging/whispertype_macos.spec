@@ -51,7 +51,7 @@ exe = EXE(
     strip=False,
     upx=False,
     console=False,
-    icon=None,
+    icon=str(ROOT / "packaging" / "icon.icns"),
 )
 
 coll = COLLECT(
@@ -67,7 +67,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name="WhisperType.app",
-    icon=None,
+    icon=str(ROOT / "packaging" / "icon.icns"),
     bundle_identifier="com.whispertype.app",
     info_plist={
         "CFBundleName": "WhisperType",

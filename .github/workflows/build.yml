@@ -54,6 +54,23 @@ jobs:
           pip install ".${{ matrix.extras }}"
           pip install pyinstaller
 
+      # -- macOS: generate .icns from PNG --
+      - name: Generate macOS icon
+        if: matrix.platform == 'macos'
+        run: |
+          mkdir -p packaging/icon.iconset
+          sips -z 16 16     packaging/icon_macos.png --out packaging/icon.iconset/icon_16x16.png
+          sips -z 32 32     packaging/icon_macos.png --out packaging/icon.iconset/icon_16x16@2x.png
+          sips -z 32 32     packaging/icon_macos.png --out packaging/icon.iconset/icon_32x32.png
+          sips -z 64 64     packaging/icon_macos.png --out packaging/icon.iconset/icon_32x32@2x.png
+          sips -z 128 128   packaging/icon_macos.png --out packaging/icon.iconset/icon_128x128.png
+          sips -z 256 256   packaging/icon_macos.png --out packaging/icon.iconset/icon_128x128@2x.png
+          sips -z 256 256   packaging/icon_macos.png --out packaging/icon.iconset/icon_256x256.png
+          sips -z 512 512   packaging/icon_macos.png --out packaging/icon.iconset/icon_256x256@2x.png
+          sips -z 512 512   packaging/icon_macos.png --out packaging/icon.iconset/icon_512x512.png
+          sips -z 1024 1024 packaging/icon_macos.png --out packaging/icon.iconset/icon_512x512@2x.png
+          iconutil -c icns packaging/icon.iconset -o packaging/icon.icns
+
       # -- Build with PyInstaller --
       - name: PyInstaller build
         run: pyinstaller ${{ matrix.spec }} --noconfirm

@@ -48,7 +48,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
-    icon=None,
+    icon=str(ROOT / "packaging" / "icon.ico"),
 )
 
 coll = COLLECT(
