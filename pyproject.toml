@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "whispertype"
+version = "1.0.0"
+description = "Voice-to-text overlay — press a hotkey, speak, and text is pasted into the focused window."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "PySide6>=6.5",
+    "numpy>=1.24",
+    "sounddevice>=0.4",
+    "faster-whisper>=0.10",
+]
+
+[project.optional-dependencies]
+windows = [
+    "keyboard>=0.13",
+]
+macos = [
+    "pyobjc-framework-Cocoa>=9.0",
+    "pyobjc-framework-Quartz>=9.0",
+    "pyperclip>=1.8",
+    "pynput>=1.7",
+]
+linux = [
+    "pyperclip>=1.8",
+    "pynput>=1.7",
+]
+dev = [
+    "pyinstaller>=6.0",
+]
+
+[project.scripts]
+whispertype = "voice_app.main:main"
+
+[tool.setuptools.packages.find]
+include = ["voice_app*"]

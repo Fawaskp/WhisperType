@@ -1,19 +1,11 @@
-import ctypes
-import ctypes.wintypes as wintypes
 import math
+import sys
 
 from PySide6.QtCore import Qt, QPointF, QRectF, QTimer, Signal
 from PySide6.QtGui import QPainter, QColor, QPen, QFont
 from PySide6.QtWidgets import QWidget, QMenu, QApplication
 
-GWL_EXSTYLE = -20
-WS_EX_NOACTIVATE = 0x08000000
-WS_EX_APPWINDOW = 0x00040000
-WS_EX_TOOLWINDOW = 0x00000080
-
-user32 = ctypes.windll.user32
-
-# Geometry (same as before)
+# Geometry
 COMPACT_SIZE = 80
 EXPANDED_W = 200
 PREVIEW_W = 320
@@ -29,6 +21,19 @@ COLORS = {
     "too_short":    {"bg": "#1E1E2E", "fg": "#FFFFFF", "ring": "#E67E22"},
     "preview":      {"bg": "#1E1E2E", "fg": "#FFFFFF", "ring": "#2ECC71"},
 }
+
+
+def _platform_preview_font():
+    """Return a QFont suitable for the current platform."""
+    if sys.platform == "win32":
+        name = "Segoe UI"
+    elif sys.platform == "darwin":
+        name = "SF Pro Text"
+    else:
+        name = "Noto Sans"
+    f = QFont(name)
+    f.setPixelSize(11)
+    return f
 
 
 class OverlayWindow(QWidget):
@@ -62,8 +67,7 @@ class OverlayWindow(QWidget):
         self._cur_h = ROW_H
 
         # Preview font
-        self._preview_font = QFont("Segoe UI")
-        self._preview_font.setPixelSize(11)
+        self._preview_font = _platform_preview_font()
 
         # Window flags
         self.setWindowFlags(
@@ -88,7 +92,7 @@ class OverlayWindow(QWidget):
         self.setGeometry(x, y, COMPACT_SIZE, ROW_H)
         self.setFixedSize(COMPACT_SIZE, ROW_H)
 
-        # Animation timer (50 ms interval, same as original)
+        # Animation timer (50 ms interval)
         self._anim_timer = QTimer(self)
         self._anim_timer.setInterval(50)
         self._anim_timer.timeout.connect(self._animate_tick)
@@ -104,9 +108,24 @@ class OverlayWindow(QWidget):
         self.show()
         self._apply_noactivate()
 
-    # -- Win32 ---------------------------------------------------------
+    # -- Platform-specific no-activate hack --------------------------------
 
     def _apply_noactivate(self):
+        """On Windows, set WS_EX_NOACTIVATE so clicks don't steal focus.
+        On macOS/Linux the Qt flags (Tool | WindowDoesNotAcceptFocus) suffice.
+        """
+        if sys.platform != "win32":
+            return
+
+        import ctypes
+        import ctypes.wintypes as wintypes  # noqa: F811
+
+        GWL_EXSTYLE = -20
+        WS_EX_NOACTIVATE = 0x08000000
+        WS_EX_APPWINDOW = 0x00040000
+        WS_EX_TOOLWINDOW = 0x00000080
+
+        user32 = ctypes.windll.user32
         hwnd = int(self.winId())
         style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
         style = style | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW
@@ -195,16 +214,14 @@ class OverlayWindow(QWidget):
     # -- Compact circle ------------------------------------------------
 
     def _draw_compact(self, p, colors):
-        cx = cy = COMPACT_SIZE / 2   # 40
-        r = COMPACT_SIZE / 2 - 3     # 37
+        cx = cy = COMPACT_SIZE / 2
+        r = COMPACT_SIZE / 2 - 3
 
-        # Outer ring
         p.setPen(QPen(QColor(colors["ring"]), 3.5))
         p.setBrush(Qt.NoBrush)
         p.drawEllipse(QPointF(cx, cy), r, r)
 
-        # Inner filled circle
-        ir = r - 5   # 32
+        ir = r - 5
         p.setPen(Qt.NoPen)
         p.setBrush(QColor(colors["bg"]))
         p.drawEllipse(QPointF(cx, cy), ir, ir)
@@ -223,11 +240,10 @@ class OverlayWindow(QWidget):
     # -- Recording expanded --------------------------------------------
 
     def _draw_recording_expanded(self, p, colors):
-        cx_left = ROW_H / 2   # 40
-        cy = ROW_H / 2         # 40
-        r = ROW_H / 2 - 3     # 37
+        cx_left = ROW_H / 2
+        cy = ROW_H / 2
+        r = ROW_H / 2 - 3
 
-        # Pulsing ring
         pulse = 0.6 + 0.4 * abs(math.sin(self._pulse_phase * math.pi / 10))
         bright = int(100 + 155 * pulse)
         pulse_ring = QColor(bright, 0x33, 0x33)
@@ -241,7 +257,6 @@ class OverlayWindow(QWidget):
         p.setBrush(QColor(colors["bg"]))
         p.drawEllipse(QPointF(cx_left, cy), ir, ir)
 
-        # Waveform bars (rounded pills)
         fg = QColor(colors["fg"])
         bar_w = 5
         gap = 4
@@ -256,7 +271,6 @@ class OverlayWindow(QWidget):
             rr = bar_w / 2
             p.drawRoundedRect(QRectF(bx, cy - bar_h / 2, bar_w, bar_h), rr, rr)
 
-        # -- Checkmark button --
         btn_r = 18
         cx_chk = cx_left + r + 12 + btn_r
 
@@ -274,7 +288,6 @@ class OverlayWindow(QWidget):
         ])
         self._btn_check = (cx_chk, cy, btn_r)
 
-        # -- Cancel button --
         cx_can = cx_chk + btn_r + 8 + btn_r
 
         p.setPen(QPen(QColor("#E74C3C"), 2))
@@ -295,7 +308,6 @@ class OverlayWindow(QWidget):
         ccx = ROW_H / 2
         r = ROW_H / 2 - 3
 
-        # Green circle with checkmark
         p.setPen(QPen(QColor("#2ECC71"), 3.5))
         p.setBrush(Qt.NoBrush)
         p.drawEllipse(QPointF(ccx, cy), r, r)
@@ -314,7 +326,6 @@ class OverlayWindow(QWidget):
             QPointF(ccx + 11, cy - 8),
         ])
 
-        # Text bubble
         bx = ROW_H + 6
         bx_end = PREVIEW_W - 6
         by = 10
@@ -339,18 +350,15 @@ class OverlayWindow(QWidget):
     def _draw_mic_icon(self, p, cx, cy, color):
         c = QColor(color)
 
-        # Capsule body
         bw, bh = 8, 13
         p.setPen(Qt.NoPen)
         p.setBrush(c)
         p.drawRoundedRect(QRectF(cx - bw, cy - bh, bw * 2, bh + 3), bw, bw)
 
-        # Cradle arc (bottom half)
         p.setPen(QPen(c, 2.5))
         p.setBrush(Qt.NoBrush)
         p.drawArc(QRectF(cx - 15, cy - 12, 30, 26), 0, -180 * 16)
 
-        # Stand
         pen = QPen(c, 2.5, Qt.SolidLine, Qt.RoundCap)
         p.setPen(pen)
         p.drawLine(QPointF(cx, cy + 14), QPointF(cx, cy + 21))
@@ -371,14 +379,12 @@ class OverlayWindow(QWidget):
     def _draw_spinner_arcs(self, p, cx, cy, color):
         c = QColor(color)
 
-        # Outer arc
         r = 14
         p.setPen(QPen(c, 3.5, Qt.SolidLine, Qt.RoundCap))
         p.setBrush(Qt.NoBrush)
         p.drawArc(QRectF(cx - r, cy - r, 2 * r, 2 * r),
                   int((self._spin_angle + 90) * 16), int(90 * 16))
 
-        # Inner arc (opposite direction)
         sr = 8
         p.setPen(QPen(c, 2.5, Qt.SolidLine, Qt.RoundCap))
         p.drawArc(QRectF(cx - sr, cy - sr, 2 * sr, 2 * sr),
@@ -390,11 +396,9 @@ class OverlayWindow(QWidget):
         p.setBrush(QColor("#E67E22"))
         p.drawEllipse(QPointF(cx, cy), r, r)
 
-        # Exclamation stem
         p.setPen(QPen(QColor("white"), 3.5, Qt.SolidLine, Qt.RoundCap))
         p.drawLine(QPointF(cx, cy - 10), QPointF(cx, cy + 3))
 
-        # Dot
         p.setPen(Qt.NoPen)
         p.setBrush(QColor("white"))
         p.drawEllipse(QPointF(cx, cy + 8), 3, 3)
@@ -405,18 +409,15 @@ class OverlayWindow(QWidget):
         p.setBrush(QColor("#E67E22"))
         p.drawEllipse(QPointF(cx, cy), r, r)
 
-        # Face outline
         p.setPen(QPen(QColor("white"), 2))
         p.setBrush(Qt.NoBrush)
         p.drawEllipse(QPointF(cx, cy), 11, 11)
 
-        # Hands
         pen = QPen(QColor("white"), 2, Qt.SolidLine, Qt.RoundCap)
         p.setPen(pen)
         p.drawLine(QPointF(cx, cy), QPointF(cx, cy - 8))
         p.drawLine(QPointF(cx, cy), QPointF(cx + 6, cy + 3))
 
-        # Center dot
         p.setPen(Qt.NoPen)
         p.setBrush(QColor("white"))
         p.drawEllipse(QPointF(cx, cy), 2, 2)

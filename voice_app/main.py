@@ -1,9 +1,6 @@
 import sys
 import threading
 import time
-import winsound
-
-import keyboard
 
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QApplication
@@ -13,11 +10,8 @@ from voice_app.config.settings import load_config, save_config, load_position, s
 from voice_app.services.transcriber import Transcriber
 from voice_app.services.focus_manager import FocusManager
 from voice_app.services.text_injector import inject_text
+from voice_app.services.platform import get_sound_player, get_hotkey_manager
 from voice_app.ui.overlay_window import OverlayWindow
-
-
-def _beep(freq, duration):
-    threading.Thread(target=winsound.Beep, args=(freq, duration), daemon=True).start()
 
 
 class _Invoker(QObject):
@@ -46,6 +40,8 @@ class OverlayApp:
         self.recorder = AudioRecorder()
         self.transcriber = Transcriber()
         self.focus_mgr = FocusManager()
+        self.sound = get_sound_player()
+        self.hotkey_mgr = get_hotkey_manager()
 
         pos = load_position()
         self.window = OverlayWindow(
@@ -88,8 +84,8 @@ class OverlayApp:
     # -- Hotkeys -------------------------------------------------------
 
     def _register_hotkey(self):
-        keyboard.add_hotkey(self.config["hotkey"], self._on_hotkey, suppress=True)
-        keyboard.add_hotkey("escape", self._on_escape, suppress=False)
+        self.hotkey_mgr.register(self.config["hotkey"], self._on_hotkey, suppress=True)
+        self.hotkey_mgr.register("escape", self._on_escape, suppress=False)
 
     def _on_hotkey(self):
         self._invoker.invoke(self._toggle_recording)
@@ -134,7 +130,7 @@ class OverlayApp:
         self.state = "recording"
         self.window.set_state("recording")
         if self.config["sound_feedback"]:
-            _beep(800, 100)
+            self.sound.beep(800, 100)
         self._poll_silence()
 
     def _poll_silence(self):
@@ -149,7 +145,7 @@ class OverlayApp:
     def _stop_recording(self):
         audio = self.recorder.stop()
         if self.config["sound_feedback"]:
-            _beep(400, 150)
+            self.sound.beep(400, 150)
 
         if audio is None:
             self.state = "idle"
@@ -169,9 +165,9 @@ class OverlayApp:
         self.window.set_state("idle")
         if self.config["sound_feedback"]:
             def _cancel_beeps():
-                winsound.Beep(300, 80)
+                self.sound.beep(300, 80)
                 time.sleep(0.05)
-                winsound.Beep(300, 80)
+                self.sound.beep(300, 80)
             threading.Thread(target=_cancel_beeps, daemon=True).start()
 
     # -- Transcription -------------------------------------------------
@@ -195,7 +191,7 @@ class OverlayApp:
         if self.config.get("prepend_space"):
             text = " " + text
 
-        keyboard.unhook_all()
+        self.hotkey_mgr.unregister_all()
         try:
             inject_text(text, target_hwnd=self.focus_mgr.saved_hwnd)
         finally:
@@ -215,7 +211,7 @@ class OverlayApp:
         try:
             self.app.exec()
         finally:
-            keyboard.unhook_all()
+            self.hotkey_mgr.unregister_all()
 
 
 def main():
