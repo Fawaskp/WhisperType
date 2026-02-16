@@ -4,26 +4,27 @@
 import sys
 from pathlib import Path
 
+from PyInstaller.utils.hooks import collect_all
+
 block_cipher = None
 ROOT = Path(SPECPATH).parent
+
+pyside6_datas, pyside6_binaries, pyside6_hiddenimports = collect_all("PySide6")
 
 a = Analysis(
     [str(ROOT / "voice_app" / "main.py")],
     pathex=[str(ROOT)],
-    binaries=[],
-    datas=[],
+    binaries=pyside6_binaries,
+    datas=pyside6_datas,
     hiddenimports=[
         "faster_whisper",
         "ctranslate2",
         "huggingface_hub",
         "keyboard",
-        "PySide6.QtCore",
-        "PySide6.QtGui",
-        "PySide6.QtWidgets",
         "sounddevice",
         "numpy",
         "voice_app.services.platform.windows",
-    ],
+    ] + pyside6_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
