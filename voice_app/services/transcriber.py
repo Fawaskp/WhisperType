@@ -12,7 +12,7 @@ class Transcriber:
         model_id = model_path if model_path else model_name
         self.model = WhisperModel(model_id, device="cpu", compute_type=compute_type)
 
-    def transcribe(self, audio, sample_rate=16000, language=None):
+    def transcribe(self, audio, sample_rate=16000, language=None, initial_prompt=None):
         if self.model is None:
             raise RuntimeError("Model not loaded")
 
@@ -25,6 +25,8 @@ class Transcriber:
         kwargs = {}
         if language:
             kwargs["language"] = language
+        if initial_prompt:
+            kwargs["initial_prompt"] = initial_prompt
 
         segments, _info = self.model.transcribe(audio_f32, **kwargs)
         text = " ".join(seg.text.strip() for seg in segments)

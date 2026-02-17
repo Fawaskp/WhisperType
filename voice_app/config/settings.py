@@ -26,6 +26,7 @@ DEFAULTS = {
     "compute_type": "int8",
     "hotkey": "ctrl+shift+space",
     "language": "en",
+    "initial_prompt": "Indian English speaker. Common terms: lakh, crore, rupees, Chennai, Bengaluru, Mumbai, Delhi, Hyderabad, Kerala, Tamil Nadu, Karnataka.",
     "prepend_space": True,
     "sound_feedback": True,
     "silence_timeout": 1,

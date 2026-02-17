@@ -156,7 +156,8 @@ class OverlayApp:
         self.window.set_state("transcribing")
 
         lang = self.config.get("language") or None
-        t = threading.Thread(target=self._do_transcribe, args=(audio, lang), daemon=True)
+        prompt = self.config.get("initial_prompt") or None
+        t = threading.Thread(target=self._do_transcribe, args=(audio, lang, prompt), daemon=True)
         t.start()
 
     def _cancel_recording(self):
@@ -172,9 +173,9 @@ class OverlayApp:
 
     # -- Transcription -------------------------------------------------
 
-    def _do_transcribe(self, audio, language):
+    def _do_transcribe(self, audio, language, initial_prompt):
         try:
-            text = self.transcriber.transcribe(audio, language=language)
+            text = self.transcriber.transcribe(audio, language=language, initial_prompt=initial_prompt)
             self._invoker.invoke(lambda: self._on_transcription_done(text))
         except Exception as e:
             self._invoker.invoke(lambda: self._on_transcription_error(e))
