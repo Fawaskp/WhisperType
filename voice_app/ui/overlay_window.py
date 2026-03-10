@@ -63,6 +63,9 @@ class OverlayWindow(QWidget):
         self._btn_check = None
         self._btn_cancel = None
 
+        # Dynamic expansion direction (False = right, True = left)
+        self._expand_left = False
+
         self._cur_w = COMPACT_SIZE
         self._cur_h = ROW_H
 
@@ -117,10 +120,28 @@ class OverlayWindow(QWidget):
             return
         self._tray = QSystemTrayIcon(icon, self)
         tray_menu = QMenu()
+        self._tray_toggle_action = tray_menu.addAction("Hide", self._toggle_visibility)
         tray_menu.addAction("Exit", lambda: QApplication.instance().quit())
         self._tray.setContextMenu(tray_menu)
         self._tray.setToolTip("WhisperType")
+        self._tray.activated.connect(self._on_tray_activated)
         self._tray.show()
+
+    def _on_tray_activated(self, reason):
+        """Single-click or double-click on tray icon toggles visibility."""
+        if reason in (QSystemTrayIcon.Trigger, QSystemTrayIcon.DoubleClick):
+            self._toggle_visibility()
+
+    def _toggle_visibility(self):
+        if self.isVisible():
+            self.hide()
+            if hasattr(self, '_tray_toggle_action'):
+                self._tray_toggle_action.setText("Show")
+        else:
+            self.show()
+            self._apply_noactivate()
+            if hasattr(self, '_tray_toggle_action'):
+                self._tray_toggle_action.setText("Hide")
 
     @staticmethod
     def _find_icon():
@@ -167,9 +188,18 @@ class OverlayWindow(QWidget):
 
     # -- Resize --------------------------------------------------------
 
+    def _should_expand_left(self):
+        """Return True if expanding rightward would clip off-screen."""
+        screen = QApplication.primaryScreen().geometry()
+        return self.x() + PREVIEW_W > screen.width()
+
     def _resize(self, w, h):
         if w == self._cur_w and h == self._cur_h:
             return
+        if self._expand_left:
+            # Keep the right edge anchored so the mic circle stays in place
+            dx = self._cur_w - w
+            self.move(self.x() + dx, self.y())
         self._cur_w = w
         self._cur_h = h
         self.setFixedSize(w, h)
@@ -188,11 +218,17 @@ class OverlayWindow(QWidget):
         self._auto_return_timer.stop()
 
         if state == "recording":
+            self._expand_left = self._should_expand_left()
             self._resize(EXPANDED_W, ROW_H)
         elif state == "preview":
+            # Re-evaluate direction since we went through compact transcribing state
+            self._expand_left = self._should_expand_left()
             self._resize(PREVIEW_W, ROW_H)
         else:
             self._resize(COMPACT_SIZE, ROW_H)
+            if state not in ("transcribing",):
+                # Keep _expand_left during transcribing so preview inherits it
+                self._expand_left = False
 
         if state in ("loading", "recording", "transcribing"):
             if state == "loading":
@@ -273,9 +309,14 @@ class OverlayWindow(QWidget):
     # -- Recording expanded --------------------------------------------
 
     def _draw_recording_expanded(self, p, colors):
-        cx_left = ROW_H / 2
         cy = ROW_H / 2
         r = ROW_H / 2 - 3
+
+        # Mic circle position depends on expansion direction
+        if self._expand_left:
+            cx_mic = EXPANDED_W - ROW_H / 2
+        else:
+            cx_mic = ROW_H / 2
 
         pulse = 0.6 + 0.4 * abs(math.sin(self._pulse_phase * math.pi / 10))
         bright = int(100 + 155 * pulse)
@@ -283,18 +324,18 @@ class OverlayWindow(QWidget):
 
         p.setPen(QPen(pulse_ring, 3.5))
         p.setBrush(Qt.NoBrush)
-        p.drawEllipse(QPointF(cx_left, cy), r, r)
+        p.drawEllipse(QPointF(cx_mic, cy), r, r)
 
         ir = r - 5
         p.setPen(Qt.NoPen)
         p.setBrush(QColor(colors["bg"]))
-        p.drawEllipse(QPointF(cx_left, cy), ir, ir)
+        p.drawEllipse(QPointF(cx_mic, cy), ir, ir)
 
         fg = QColor(colors["fg"])
         bar_w = 5
         gap = 4
         total = 3 * bar_w + 2 * gap
-        x_start = cx_left - total / 2
+        x_start = cx_mic - total / 2
 
         p.setBrush(fg)
         for i in range(3):
@@ -305,8 +346,17 @@ class OverlayWindow(QWidget):
             p.drawRoundedRect(QRectF(bx, cy - bar_h / 2, bar_w, bar_h), rr, rr)
 
         btn_r = 18
-        cx_chk = cx_left + r + 12 + btn_r
 
+        if self._expand_left:
+            # Buttons to the left of mic
+            cx_chk = cx_mic - r - 12 - btn_r
+            cx_can = cx_chk - btn_r - 8 - btn_r
+        else:
+            # Buttons to the right of mic
+            cx_chk = cx_mic + r + 12 + btn_r
+            cx_can = cx_chk + btn_r + 8 + btn_r
+
+        # Check (stop) button
         p.setPen(QPen(QColor("#2ECC71"), 2))
         p.setBrush(QColor("#27AE60"))
         p.drawEllipse(QPointF(cx_chk, cy), btn_r, btn_r)
@@ -321,25 +371,30 @@ class OverlayWindow(QWidget):
         ])
         self._btn_check = (cx_chk, cy, btn_r)
 
-        cx_can = cx_chk + btn_r + 8 + btn_r
-
+        # Cancel button
+        cx_can_draw = cx_can
         p.setPen(QPen(QColor("#E74C3C"), 2))
         p.setBrush(QColor("#C0392B"))
-        p.drawEllipse(QPointF(cx_can, cy), btn_r, btn_r)
+        p.drawEllipse(QPointF(cx_can_draw, cy), btn_r, btn_r)
 
         xs = 6
         pen = QPen(QColor("white"), 3, Qt.SolidLine, Qt.RoundCap)
         p.setPen(pen)
-        p.drawLine(QPointF(cx_can - xs, cy - xs), QPointF(cx_can + xs, cy + xs))
-        p.drawLine(QPointF(cx_can + xs, cy - xs), QPointF(cx_can - xs, cy + xs))
-        self._btn_cancel = (cx_can, cy, btn_r)
+        p.drawLine(QPointF(cx_can_draw - xs, cy - xs), QPointF(cx_can_draw + xs, cy + xs))
+        p.drawLine(QPointF(cx_can_draw + xs, cy - xs), QPointF(cx_can_draw - xs, cy + xs))
+        self._btn_cancel = (cx_can_draw, cy, btn_r)
 
     # -- Preview -------------------------------------------------------
 
     def _draw_preview(self, p, colors):
         cy = ROW_H / 2
-        ccx = ROW_H / 2
         r = ROW_H / 2 - 3
+
+        # Checkmark circle position depends on expansion direction
+        if self._expand_left:
+            ccx = PREVIEW_W - ROW_H / 2
+        else:
+            ccx = ROW_H / 2
 
         p.setPen(QPen(QColor("#2ECC71"), 3.5))
         p.setBrush(Qt.NoBrush)
@@ -359,8 +414,13 @@ class OverlayWindow(QWidget):
             QPointF(ccx + 11, cy - 8),
         ])
 
-        bx = ROW_H + 6
-        bx_end = PREVIEW_W - 6
+        # Text box on the opposite side of the checkmark circle
+        if self._expand_left:
+            bx = 6
+            bx_end = PREVIEW_W - ROW_H - 6
+        else:
+            bx = ROW_H + 6
+            bx_end = PREVIEW_W - 6
         by = 10
         by_end = ROW_H - 10
         br = 12
@@ -485,7 +545,11 @@ class OverlayWindow(QWidget):
 
         if self._drag_moved:
             if self.on_drag_end:
-                self.on_drag_end(self.x(), self.y())
+                # Save the compact circle position, not the expanded widget pos
+                save_x = self.x()
+                if self._expand_left and self._cur_w > COMPACT_SIZE:
+                    save_x = self.x() + self._cur_w - COMPACT_SIZE
+                self.on_drag_end(save_x, self.y())
             self._drag_start = None
             return
 
@@ -509,9 +573,12 @@ class OverlayWindow(QWidget):
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
+        minimize_action = menu.addAction("Minimize to Tray")
         exit_action = menu.addAction("Exit")
         action = menu.exec(event.globalPos())
-        if action == exit_action:
+        if action == minimize_action:
+            self._toggle_visibility()
+        elif action == exit_action:
             QApplication.instance().quit()
 
     def _hit_test(self, x, y, cx, cy, r):

@@ -137,7 +137,7 @@ class OverlayApp:
         if self.state != "recording":
             return
         timeout = self.config.get("silence_timeout", 3)
-        if timeout and self.recorder.silence_duration >= timeout:
+        if False and timeout and self.recorder.silence_duration >= timeout:  # auto-stop disabled
             self._stop_recording()
             return
         QTimer.singleShot(250, self._poll_silence)
