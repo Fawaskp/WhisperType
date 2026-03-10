@@ -278,6 +278,18 @@ class WindowsFocusManager(PlatformFocusManager):
     def saved_window_id(self):
         return self._saved_hwnd
 
+    def get_window_title(self):
+        """Return the title of the saved window, or empty string."""
+        hwnd = self._saved_hwnd
+        if not hwnd or not user32.IsWindow(hwnd):
+            return ""
+        length = user32.GetWindowTextLengthW(hwnd)
+        if length == 0:
+            return ""
+        buf = ctypes.create_unicode_buffer(length + 1)
+        user32.GetWindowTextW(hwnd, buf, length + 1)
+        return buf.value
+
 
 class WindowsTextInjector(PlatformTextInjector):
     def inject_text(self, text, target_window_id=None, preserve_clipboard=True):

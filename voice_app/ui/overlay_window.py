@@ -10,6 +10,7 @@ COMPACT_SIZE = 80
 EXPANDED_W = 200
 PREVIEW_W = 320
 ROW_H = 80
+PREVIEW_H = 100  # taller to show target app name
 
 # State colors
 COLORS = {
@@ -37,7 +38,7 @@ def _platform_preview_font():
 
 
 class OverlayWindow(QWidget):
-    _state_signal = Signal(str, str)
+    _state_signal = Signal(str, str, str)
 
     def __init__(self, root, on_click=None, on_stop=None, on_cancel=None,
                  initial_pos=None, on_drag_end=None):
@@ -48,6 +49,7 @@ class OverlayWindow(QWidget):
         self.on_drag_end = on_drag_end
         self._state = "loading"
         self._preview_text = ""
+        self._preview_target = ""
 
         # Animation state
         self._pulse_phase = 0
@@ -206,13 +208,14 @@ class OverlayWindow(QWidget):
 
     # -- State ---------------------------------------------------------
 
-    def set_state(self, state, text=""):
+    def set_state(self, state, text="", target=""):
         """Thread-safe — can be called from any thread."""
-        self._state_signal.emit(state, text)
+        self._state_signal.emit(state, text, target)
 
-    def _set_state_impl(self, state, text):
+    def _set_state_impl(self, state, text, target):
         self._state = state
         self._preview_text = text
+        self._preview_target = target
 
         self._anim_timer.stop()
         self._auto_return_timer.stop()
@@ -223,7 +226,7 @@ class OverlayWindow(QWidget):
         elif state == "preview":
             # Re-evaluate direction since we went through compact transcribing state
             self._expand_left = self._should_expand_left()
-            self._resize(PREVIEW_W, ROW_H)
+            self._resize(PREVIEW_W, PREVIEW_H)
         else:
             self._resize(COMPACT_SIZE, ROW_H)
             if state not in ("transcribing",):
@@ -387,7 +390,8 @@ class OverlayWindow(QWidget):
     # -- Preview -------------------------------------------------------
 
     def _draw_preview(self, p, colors):
-        cy = ROW_H / 2
+        h = PREVIEW_H
+        cy = ROW_H / 2  # checkmark stays vertically centered in top ROW_H area
         r = ROW_H / 2 - 3
 
         # Checkmark circle position depends on expansion direction
@@ -421,8 +425,8 @@ class OverlayWindow(QWidget):
         else:
             bx = ROW_H + 6
             bx_end = PREVIEW_W - 6
-        by = 10
-        by_end = ROW_H - 10
+        by = 8
+        by_end = ROW_H - 8
         br = 12
 
         p.setPen(Qt.NoPen)
@@ -437,6 +441,35 @@ class OverlayWindow(QWidget):
         p.setFont(self._preview_font)
         p.drawText(QRectF(bx, by, bx_end - bx, by_end - by),
                    Qt.AlignCenter, display)
+
+        # Target app label below the text box
+        if self._preview_target:
+            target_label = self._preview_target
+            if len(target_label) > 50:
+                target_label = target_label[:47] + "..."
+            label_text = "Pasted in: " + target_label
+
+            small_font = QFont(self._preview_font)
+            small_font.setPixelSize(10)
+            p.setFont(small_font)
+
+            # Measure text to size the background pill
+            fm = p.fontMetrics()
+            text_w = fm.horizontalAdvance(label_text)
+            pill_w = text_w + 16
+            pill_h = 18
+            pill_x = bx + (bx_end - bx - pill_w) / 2
+            pill_y = ROW_H - 1
+
+            # Dark background pill
+            p.setPen(Qt.NoPen)
+            p.setBrush(QColor("#2A2A3A"))
+            p.drawRoundedRect(QRectF(pill_x, pill_y, pill_w, pill_h), 9, 9)
+
+            # Bright text
+            p.setPen(QColor("#CCCCCC"))
+            p.drawText(QRectF(pill_x, pill_y, pill_w, pill_h),
+                       Qt.AlignCenter, label_text)
 
     # -- Icons ---------------------------------------------------------
 

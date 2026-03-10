@@ -192,6 +192,9 @@ class OverlayApp:
         if self.config.get("prepend_space"):
             text = " " + text
 
+        # Get target window title before pasting
+        window_title = self.focus_mgr.get_window_title()
+
         self.hotkey_mgr.unregister_all()
         try:
             inject_text(text, target_hwnd=self.focus_mgr.saved_hwnd)
@@ -199,7 +202,7 @@ class OverlayApp:
             self._register_hotkey()
 
         self.state = "idle"
-        self.window.set_state("preview", text=text.strip())
+        self.window.set_state("preview", text=text.strip(), target=window_title)
 
     def _on_transcription_error(self, error):
         print(f"Transcription error: {error}", file=sys.stderr)

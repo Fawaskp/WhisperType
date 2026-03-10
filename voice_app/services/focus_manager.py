@@ -17,3 +17,9 @@ class FocusManager:
     def saved_hwnd(self):
         """Legacy name kept for compatibility with main.py."""
         return self._impl.saved_window_id
+
+    def get_window_title(self):
+        """Return the title of the saved window, if supported."""
+        if hasattr(self._impl, 'get_window_title'):
+            return self._impl.get_window_title()
+        return ""
