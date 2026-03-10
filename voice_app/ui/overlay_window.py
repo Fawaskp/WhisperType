@@ -450,7 +450,7 @@ class OverlayWindow(QWidget):
             label_text = "Pasted in: " + target_label
 
             small_font = QFont(self._preview_font)
-            small_font.setPixelSize(10)
+            small_font.setPixelSize(12)
             p.setFont(small_font)
 
             # Measure text to size the background pill
