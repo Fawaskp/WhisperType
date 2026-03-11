@@ -27,6 +27,7 @@ pyinstaller packaging/whispertype_linux.spec --noconfirm
 iscc packaging/inno_setup.iss              # Windows (Inno Setup)
 bash packaging/build_dmg.sh                # macOS DMG
 bash packaging/build_appimage.sh           # Linux AppImage
+bash packaging/build_archlinux.sh          # Arch Linux .pkg.tar.zst
 ```
 
 No test suite or linter is configured.
@@ -87,10 +88,11 @@ Qt UI updates from background threads go through an `_Invoker` helper class that
 - `inno_setup.iss` — Windows installer (Inno Setup)
 - `build_dmg.sh` — macOS DMG builder
 - `build_appimage.sh` — Linux AppImage builder
+- `PKGBUILD` / `build_archlinux.sh` — Arch Linux package builder
 
 ### CI/CD (`.github/workflows/build.yml`)
 
-Matrix build for all 3 platforms. On tag push (`v*`), builds all installers and creates a GitHub Release with artifacts.
+Matrix build for Windows, macOS, and Linux (AppImage). Separate job for Arch Linux (runs in `archlinux:base-devel` container). On tag push (`v*`), builds all installers and creates a GitHub Release with artifacts.
 
 ## Platform Notes
 

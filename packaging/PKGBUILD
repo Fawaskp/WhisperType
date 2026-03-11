@@ -1,0 +1,47 @@
+# Maintainer: WhisperType Team
+pkgname=whispertype
+pkgver=1.0.0
+pkgrel=1
+pkgdesc='Voice-to-text overlay — press a hotkey, speak, and text is pasted into the focused window'
+arch=('x86_64')
+license=('MIT')
+depends=(
+    'python'
+    'xdotool'
+    'xclip'
+    'libxkbcommon'
+)
+makedepends=(
+    'python-pip'
+    'python-setuptools'
+    'python-wheel'
+)
+source=("${pkgname}-${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    cd "${srcdir}/${pkgname}-${pkgver}"
+
+    PIP_CONFIG_FILE=/dev/null pip install \
+        --root="${pkgdir}" \
+        --no-warn-script-location \
+        --break-system-packages \
+        ".[linux]"
+
+    # Desktop entry
+    install -Dm644 /dev/stdin \
+        "${pkgdir}/usr/share/applications/whispertype.desktop" <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=WhisperType
+Comment=Voice-to-text overlay application
+Exec=whispertype
+Icon=whispertype
+Categories=Utility;Audio;
+Terminal=false
+DESKTOP
+
+    # Application icon
+    install -Dm644 packaging/icon.png \
+        "${pkgdir}/usr/share/icons/hicolor/256x256/apps/whispertype.png"
+}
